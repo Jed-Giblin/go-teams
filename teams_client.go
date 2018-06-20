@@ -109,6 +109,7 @@ func (b *TeamsClient) webSocketListenerCallBack( w http.ResponseWriter, r *http.
 		    proc.OnMessage(message)
 		}
 	} else {
+		fmt.Println("WARNING - MESSAGE RECEIVED WITH INVALID AUTH HEADER: " + auth)
 		w.WriteHeader(http.StatusForbidden)
 		w.Write([]byte("404 - Not Authenticated"))
 	}

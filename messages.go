@@ -1,4 +1,4 @@
-package godma
+package goteams
 
 import "encoding/json"
 
@@ -19,6 +19,15 @@ type Message struct {
 	MessageTime			string   	`json:"created"`
 	MentionedPeople 	[]string 	`json:"mentionedPeople"`
 	MentionedGroups 	[]string 	`json:"mentionedGroups"`
+}
+
+type NewMessage struct {
+	RoomID 				string 		`json:"roomId"`
+	ToPersonID 			string 		`json:"toPersonId"`
+	ToPersonEmail 		string 		`json:"toPersonEmail"`
+	Text 		  		string 		`json:"text"`
+	Markdown	  		string 		`json:"markdown"`
+	Files		  		[]string 	`json:"files"`
 }
 
 
@@ -47,7 +56,6 @@ type WebhookMessage struct {
 	ActorID			string		`json:"actorId"`
 	Data 			json.RawMessage
 }
-
 
 type NewWebSocket struct {
 	Name string `json:"name"`

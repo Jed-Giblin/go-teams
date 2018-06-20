@@ -1,4 +1,4 @@
-package godma
+package goteams
 
 import (
 	"net/http"

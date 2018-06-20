@@ -86,6 +86,7 @@ func (b *TeamsClient) startServer() {
 
 func (b *TeamsClient) webSocketListenerCallBack( w http.ResponseWriter, r *http.Request) {
 	auth := r.Header.Get("X-Spark-Signature")
+	fmt.Println("Message Received")
 	if auth == b.Config.SparkSecret  {
 		w.Write([]byte("200 - Authenticated"))
 		body, err := ioutil.ReadAll(r.Body)

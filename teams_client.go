@@ -9,6 +9,8 @@ import (
 	"sync"
 	"errors"
 	"github.com/joho/godotenv"
+	"crypto/hmac"
+	"crypto/sha256"
 )
 
 type TeamsConfig struct {
@@ -87,10 +89,12 @@ func (b *TeamsClient) startServer() {
 func (b *TeamsClient) webSocketListenerCallBack( w http.ResponseWriter, r *http.Request) {
 	auth := r.Header.Get("X-Spark-Signature")
 	fmt.Println("Message Received")
-	if auth == b.Config.SparkSecret  {
+	body, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+
+	if checkMAC( body, []byte(auth), []byte(b.Config.SparkSecret) ) {
 		w.Write([]byte("200 - Authenticated"))
-		body, err := ioutil.ReadAll(r.Body)
-		defer r.Body.Close()
+
 
 		var envelope WebhookMessage
 		err = json.Unmarshal(body, &envelope)
@@ -125,6 +129,13 @@ func (b *TeamsClient) eventProcessorsWhere( resource string ) (TeamsMessageProce
 		}
 	}
 	return nil, errors.New("No event processor found for " + resource)
+}
+
+func checkMAC(message, messageMAC, key []byte) bool {
+	mac := hmac.New(sha256.New, key)
+	mac.Write(message)
+	expectedMAC := mac.Sum(nil)
+	return hmac.Equal(messageMAC, expectedMAC)
 }
 
 //func (b TeamsClient) processTeamsMessage(msg Message) {

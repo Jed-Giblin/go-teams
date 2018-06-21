@@ -11,7 +11,7 @@ import (
 	"github.com/joho/godotenv"
 	"crypto/hmac"
 	"crypto/sha1"
-	"strconv"
+	"encoding/hex"
 )
 
 type TeamsConfig struct {
@@ -140,14 +140,10 @@ func (b *TeamsClient) eventProcessorsWhere( resource string ) (TeamsMessageProce
 
 func checkMAC(unsignedData, receivedHMAC, key []byte) bool {
 	mac := hmac.New(sha1.New, key)
-	bytes, err := mac.Write(unsignedData)
-	Croak(err)
-	fmt.Println("Wrote " + strconv.Itoa(bytes) + " bytes")
+	mac.Write(unsignedData)
 	expectedMAC := mac.Sum(nil)
-	fmt.Printf("%x\n", mac.Sum(nil))
-	fmt.Printf( "The received HMAC was " + strconv.Itoa(len(receivedHMAC)))
-	fmt.Printf( "The generated HMAC was " + strconv.Itoa(len(expectedMAC)))
-	return hmac.Equal(receivedHMAC, expectedMAC)
+	fmt.Println(hex.EncodeToString([]byte(expectedMAC)))
+	return hex.EncodeToString([]byte(receivedHMAC)) == hex.EncodeToString([]byte(expectedMAC))
 }
 
 //func (b TeamsClient) processTeamsMessage(msg Message) {

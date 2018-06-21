@@ -10,8 +10,8 @@ import (
 	"errors"
 	"github.com/joho/godotenv"
 	"crypto/hmac"
-	_ "crypto/sha1"
-	"crypto/sha256"
+	"crypto/sha1"
+	"strconv"
 )
 
 type TeamsConfig struct {
@@ -94,7 +94,7 @@ func (b *TeamsClient) webSocketListenerCallBack( w http.ResponseWriter, r *http.
 	defer r.Body.Close()
 
 	fmt.Println("The body of the message:")
-	fmt.Println(string(body))
+	fmt.Printf("%x\n", body)
 	fmt.Println("The supplied HMAC-SHA1 hash")
 	fmt.Println(auth)
 	fmt.Println("The the expected encryption")
@@ -139,12 +139,12 @@ func (b *TeamsClient) eventProcessorsWhere( resource string ) (TeamsMessageProce
 }
 
 func checkMAC(unsignedData, receivedHMAC, key []byte) bool {
-	mac := hmac.New(sha256.New, key)
-	mac.Write(unsignedData)
+	mac := hmac.New(sha1.New, key)
+	bytes, err := mac.Write(unsignedData)
+	Croak(err)
+	fmt.Println("Wrote " + strconv.Itoa(bytes) + " bytes")
 	expectedMAC := mac.Sum(nil)
-	fmt.Println(string(expectedMAC))
-	fmt.Println("Using key " )
-	fmt.Println(string(key))
+	fmt.Printf("%x\n", mac.Sum(nil))
 	return hmac.Equal(receivedHMAC, expectedMAC)
 }
 

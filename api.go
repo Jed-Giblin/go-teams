@@ -16,6 +16,7 @@ func SendMessageToTeams(msg NewMessage) Message {
 	req,err := http.NewRequest("POST", NEW_MESSAGE_URL, bytes.NewBuffer(body))
 	Croak(err)
 	res,err := client.Do(req)
+	Croak(err)
 	msgBody, err := ioutil.ReadAll(res.Body)
 	Croak(err)
 	defer res.Body.Close()

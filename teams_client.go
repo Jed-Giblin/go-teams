@@ -143,7 +143,7 @@ func checkMAC(unsignedData, receivedHMAC, key []byte) bool {
 	mac.Write(unsignedData)
 	expectedMAC := mac.Sum(nil)
 	fmt.Println(hex.EncodeToString([]byte(expectedMAC)))
-	return hex.EncodeToString([]byte(receivedHMAC)) == hex.EncodeToString([]byte(expectedMAC))
+	return string(receivedHMAC) == hex.EncodeToString([]byte(expectedMAC))
 }
 
 //func (b TeamsClient) processTeamsMessage(msg Message) {

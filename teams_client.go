@@ -145,6 +145,8 @@ func checkMAC(unsignedData, receivedHMAC, key []byte) bool {
 	fmt.Println("Wrote " + strconv.Itoa(bytes) + " bytes")
 	expectedMAC := mac.Sum(nil)
 	fmt.Printf("%x\n", mac.Sum(nil))
+	fmt.Printf( "The received HMAC was " + strconv.Itoa(len(receivedHMAC)))
+	fmt.Printf( "The generated HMAC was " + strconv.Itoa(len(expectedMAC)))
 	return hmac.Equal(receivedHMAC, expectedMAC)
 }
 

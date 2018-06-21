@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"bytes"
+	"fmt"
 )
 
 const NEW_MESSAGE_URL = "https://api.ciscospark.com/v1/messages"
@@ -15,6 +16,7 @@ func SendMessageToTeams(msg NewMessage) Message {
 	Croak(err)
 	req,err := http.NewRequest("POST", NEW_MESSAGE_URL, bytes.NewBuffer(body))
 	Croak(err)
+	fmt.Println(string(body))
 	res,err := client.Do(req)
 	Croak(err)
 	msgBody, err := ioutil.ReadAll(res.Body)

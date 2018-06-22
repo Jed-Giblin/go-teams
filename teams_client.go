@@ -85,6 +85,7 @@ func(b *TeamsClient) sendMessage(msg newMessage) {
 	Croak(err)
 	req,err := http.NewRequest("POST", NEW_MESSAGE_URL, bytes.NewBuffer(body))
 	req.Header.Add("Authorization", "Bearer " + b.Config.AccessToken)
+	fmt.Println(req.Header.Get("Authorization"))
 	Croak(err)
 	b.client.Do(req)
 }

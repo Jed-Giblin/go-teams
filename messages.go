@@ -32,7 +32,7 @@ type newMessage struct {
 	ToPersonEmail 		string 		`json:"toPersonEmail,omitempty"`
 	Text 		  		string 		`json:"text"`
 	Markdown	  		string 		`json:"markdown"`
-	Files		  		[]string 	`json:"files"`
+	Files		  		[]string 	`json:"files,omitempty"`
 }
 
 

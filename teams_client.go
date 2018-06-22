@@ -81,13 +81,14 @@ func (b *TeamsClient) Respond( text string, markdown string, files []string, oMs
 func(b *TeamsClient) sendMessage(msg newMessage) {
 	body, err := json.Marshal(&msg)
 	Croak(err)
-	fmt.Println(string(body))
-	Croak(err)
-	req,err := http.NewRequest("POST", NEW_MESSAGE_URL, bytes.NewBuffer(body))
+	b.post(NEW_MESSAGE_URL, body)
+}
+
+func(b *TeamsClient) post( url string, body []byte) {
+	req,err := http.NewRequest("POST", url, bytes.NewBuffer(body))
 	req.Header.Add("Authorization", "Bearer " + b.Config.AccessToken)
-	fmt.Println(req.Header.Get("Authorization"))
-	Croak(err)
-	res, err := b.client.Do(req)
+	req.Header.Add( "Content-Type", "application/json")
+	res,err := b.client.Do(req)
 	Croak(err)
 	fmt.Println(res.Status)
 }

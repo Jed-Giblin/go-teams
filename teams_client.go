@@ -32,12 +32,12 @@ type TeamsClient struct {
 type TeamsMessageProcessor interface {
 	GetEvent() string
 	GetResource() string
-	OnMessage( msg Message )
-	OnRoom( msg Room )
+	OnMessage( client TeamsClient, msg Message )
+	OnRoom( client TeamsClient, msg Room )
 	//TODO - Support Memberships
-	OnMembership( )
+	OnMembership(client TeamsClient)
 	//TODO - Support Teams
-	OnTeam()
+	OnTeam(client TeamsClient)
 }
 
 
@@ -117,7 +117,7 @@ func (b *TeamsClient) webSocketListenerCallBack( w http.ResponseWriter, r *http.
 			Croak(err)
 			var message Message
 			json.Unmarshal(envelope.Data, &message)
-		    proc.OnMessage(message)
+		    proc.OnMessage(*b, message)
 		}
 	} else {
 		fmt.Println("WARNING - MESSAGE RECEIVED WITH INVALID AUTH HEADER: " + auth)
@@ -145,10 +145,6 @@ func checkMAC(unsignedData, receivedHMAC, key []byte) bool {
 	fmt.Println(hex.EncodeToString([]byte(expectedMAC)))
 	return string(receivedHMAC) == hex.EncodeToString([]byte(expectedMAC))
 }
-
-//func (b TeamsClient) processTeamsMessage(msg Message) {
-//
-//}
 
 func Croak( e error ) {
 	if e != nil {

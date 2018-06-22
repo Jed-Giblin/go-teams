@@ -1,8 +1,12 @@
 package goteams
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"bytes"
+	"net/http"
+)
 
-type WebhookResponse interface {}
+const NEW_MESSAGE_URL = "https://api.ciscospark.com/v1/messages"
 
 // This is a Message object from the Teams API
 type Message struct {
@@ -21,64 +25,33 @@ type Message struct {
 	MentionedGroups 	[]string 	`json:"mentionedGroups"`
 }
 
-type NewMessage struct {
-	RoomID 				string 		`json:"roomId"`
-	ToPersonID 			string 		`json:"toPersonId"`
-	ToPersonEmail 		string 		`json:"toPersonEmail"`
+type newMessage struct {
+	RoomID 				string 		`json:"roomId,omitempty"`
+	ToPersonID 			string 		`json:"toPersonId,omitempty"`
+	ToPersonEmail 		string 		`json:"toPersonEmail,omitempty"`
 	Text 		  		string 		`json:"text"`
 	Markdown	  		string 		`json:"markdown"`
 	Files		  		[]string 	`json:"files"`
 }
 
 
-// This ia Room object
-type Room struct {
-	ID 				string 		`json:"id"`
-	Title			string		`json:"title"`
-	Type			string		`json:"type"`
-	Locked			bool		`json:"isLocked"`
-	TeamID			string		`json:"teamId"`
-	LastActivity	string		`json:"lastActivity"`
+
+func (m *Message ) Respond( text string, markdown string, files []string) {
+	newMsg := newMessage{}
+	newMsg.Files = files
+	newMsg.Markdown = markdown
+	newMsg.Text = text
+	newMsg.ToPersonEmail = m.ToPersonEmail
+	newMsg.ToPersonID = m.ToPersonID
+	newMsg.RoomID = m.RoomID
+	newMsg.send()
 }
 
-// This is the message taht comes in from the webhook
-type WebhookMessage struct {
-	ID 				string 		`json:"id"`
-	Name 			string		`json:"name"`
-	Resource   		string 		`json:"resource"`
-	Event 			string 		`json:"event"`
-	Filter 			string  	`json:"filter"`
-	OrgID			string 		`json:"orgId"`
-	CreatedBy 		string 		`json:"createdBy"`
-	AppID 			string 		`json:"appId"`
-	OwnedBy			string 		`json:"ownedBy"`
-	Status 			string 		`json:"status"`
-	ActorID			string		`json:"actorId"`
-	Data 			json.RawMessage
-}
-
-type NewWebSocket struct {
-	Name string `json:"name"`
-	TargetURL string `json:"targetUrl"`
-	Resource string `json:"resource"`
-	Event string `json:"event"`
-	Filter string `json:"filter"`
-	Secret string `json:"secret"`
-}
-
-type ExistingWebSocket struct {
-	Id string `json:"id"`
-	Name string `json:"name"`
-	TargetURL string `json:"targetUrl"`
-	Resource string `json:"resource"`
-	Event string `json:"event"`
-	Filter string `json:"filter"`
-	Secret string `json:"secret"`
-	Status string `json:"status"`
-	CreatedAt string `json:"created"`
-}
-
-
-type WebSocketsListResponse struct {
-	Websockets []ExistingWebSocket `json:"items"`
+func( m *newMessage ) send() {
+	client := http.Client{}
+	body, err := json.Marshal(&m)
+	Croak(err)
+	req,err := http.NewRequest("POST", NEW_MESSAGE_URL, bytes.NewBuffer(body))
+	Croak(err)
+	client.Do(req)
 }

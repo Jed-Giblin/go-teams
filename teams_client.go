@@ -80,6 +80,7 @@ func (b *TeamsClient) Respond( text string, markdown string, files []string, oMs
 
 func(b *TeamsClient) sendMessage(msg newMessage) {
 	body, err := json.Marshal(&msg)
+	Croak(err)
 	fmt.Println(string(body))
 	Croak(err)
 	req,err := http.NewRequest("POST", NEW_MESSAGE_URL, bytes.NewBuffer(body))
@@ -87,7 +88,6 @@ func(b *TeamsClient) sendMessage(msg newMessage) {
 	Croak(err)
 	b.client.Do(req)
 }
-
 
 func (b *TeamsClient) startServer() {
 	http.HandleFunc("/", b.webSocketListenerCallBack )

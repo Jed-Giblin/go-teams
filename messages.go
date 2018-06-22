@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"bytes"
 	"net/http"
+	"fmt"
 )
 
 const NEW_MESSAGE_URL = "https://api.ciscospark.com/v1/messages"
@@ -50,6 +51,7 @@ func (m *Message ) Respond( text string, markdown string, files []string) {
 func( m *newMessage ) send() {
 	client := http.Client{}
 	body, err := json.Marshal(&m)
+	fmt.Println(string(body))
 	Croak(err)
 	req,err := http.NewRequest("POST", NEW_MESSAGE_URL, bytes.NewBuffer(body))
 	Croak(err)

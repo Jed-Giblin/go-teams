@@ -87,7 +87,9 @@ func(b *TeamsClient) sendMessage(msg newMessage) {
 	req.Header.Add("Authorization", "Bearer " + b.Config.AccessToken)
 	fmt.Println(req.Header.Get("Authorization"))
 	Croak(err)
-	b.client.Do(req)
+	res, err := b.client.Do(req)
+	Croak(err)
+	fmt.Println(res.Status)
 }
 
 func (b *TeamsClient) startServer() {

@@ -129,7 +129,8 @@ func (b *TeamsClient) webSocketListenerCallBack( w http.ResponseWriter, r *http.
 			Croak(err)
 			var message Message
 			json.Unmarshal(envelope.Data, &message)
-			if message.SenderID == b.Config.BotId {
+			// Skip messages from myself
+			if message.SenderEmail == b.Config.Username {
 				return
 			}
 		    proc.OnMessage(*b, message)

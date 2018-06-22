@@ -8,25 +8,20 @@ import (
 	"log"
 	"sync"
 	"errors"
-	"github.com/joho/godotenv"
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/hex"
+	"bytes"
 )
 
-type TeamsConfig struct {
-	SparkSecret string
-	AccessToken string
-	Username string
-	BotId string
-	TargetURL string
-}
+const NEW_MESSAGE_URL = "https://api.ciscospark.com/v1/messages"
 
 type TeamsClient struct {
 	Config TeamsConfig
 	// Any type that implements the interface
 	EventProcessors []TeamsMessageProcessor
 	Listeners sync.WaitGroup
+	client http.Client
 }
 
 type TeamsMessageProcessor interface {
@@ -56,18 +51,9 @@ func NewClient() TeamsClient {
 	bot := TeamsClient{}
 	bot.Config = NewConfig(config)
 	bot.Listeners = sync.WaitGroup{}
+	bot.client = http.Client{}
 	return bot
 }
-
-func loadEnv() map[string]string {
-	var conf map[string]string
-	conf, err := godotenv.Read()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-	return conf
-}
-
 
 func (b *TeamsClient) RegisterNewListener(ep TeamsMessageProcessor) {
 	fmt.Println("Adding a new listener for " + ep.GetEvent() + " events ")
@@ -80,6 +66,28 @@ func (b *TeamsClient) Start() {
 	fmt.Println("Listening for Events from Cisco Teams")
 	b.Listeners.Wait()
 }
+
+func (b *TeamsClient) Respond( text string, markdown string, files []string, oMsg Message) {
+	newMsg := newMessage{}
+	newMsg.Files = files
+	newMsg.Markdown = markdown
+	newMsg.Text = text
+	newMsg.ToPersonEmail = oMsg.ToPersonEmail
+	newMsg.ToPersonID = oMsg.ToPersonID
+	newMsg.RoomID = oMsg.RoomID
+	b.sendMessage(newMsg)
+}
+
+func(b *TeamsClient) sendMessage(msg newMessage) {
+	body, err := json.Marshal(&msg)
+	fmt.Println(string(body))
+	Croak(err)
+	req,err := http.NewRequest("POST", NEW_MESSAGE_URL, bytes.NewBuffer(body))
+	req.Header.Add("Authorization", "Bearer " + b.Config.AccessToken)
+	Croak(err)
+	b.client.Do(req)
+}
+
 
 func (b *TeamsClient) startServer() {
 	http.HandleFunc("/", b.webSocketListenerCallBack )

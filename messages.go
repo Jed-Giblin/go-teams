@@ -1,14 +1,5 @@
 package goteams
 
-import (
-	"encoding/json"
-	"bytes"
-	"net/http"
-	"fmt"
-)
-
-const NEW_MESSAGE_URL = "https://api.ciscospark.com/v1/messages"
-
 // This is a Message object from the Teams API
 type Message struct {
 	ID 					string 		`json:"id"`
@@ -35,25 +26,3 @@ type newMessage struct {
 	Files		  		[]string 	`json:"files,omitempty"`
 }
 
-
-
-func (m *Message ) Respond( text string, markdown string, files []string) {
-	newMsg := newMessage{}
-	newMsg.Files = files
-	newMsg.Markdown = markdown
-	newMsg.Text = text
-	newMsg.ToPersonEmail = m.ToPersonEmail
-	newMsg.ToPersonID = m.ToPersonID
-	newMsg.RoomID = m.RoomID
-	newMsg.send()
-}
-
-func( m *newMessage ) send() {
-	client := http.Client{}
-	body, err := json.Marshal(&m)
-	fmt.Println(string(body))
-	Croak(err)
-	req,err := http.NewRequest("POST", NEW_MESSAGE_URL, bytes.NewBuffer(body))
-	Croak(err)
-	client.Do(req)
-}

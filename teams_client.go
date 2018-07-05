@@ -7,21 +7,21 @@ import (
 	"fmt"
 	"log"
 	"sync"
-	"errors"
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/hex"
-	"bytes"
+	"github.com/hashicorp/golang-lru"
 )
 
 const NEW_MESSAGE_URL = "https://api.ciscospark.com/v1/messages"
+const NEW_PERSON_URL = "https://api.ciscospark.com/v1/people"
 
 type TeamsClient struct {
-	Config TeamsConfig
 	// Any type that implements the interface
-	EventProcessors []TeamsMessageProcessor
+	EventProcessors map[string][]TeamsMessageProcessor
 	Listeners sync.WaitGroup
-	client http.Client
+	client apiClient
+	lruCache *lru.Cache
 }
 
 type TeamsMessageProcessor interface {
@@ -35,29 +35,19 @@ type TeamsMessageProcessor interface {
 	OnTeam(client TeamsClient)
 }
 
-
-func NewConfig(conf map[string]string ) TeamsConfig {
-	config := TeamsConfig{}
-	config.SparkSecret = conf["SparkSecret"]
-	config.AccessToken = conf["AccessToken"]
-	config.Username = conf["Username"]
-	config.BotId = conf["BotId"]
-	return config
-}
-
 func NewClient() TeamsClient {
 	fmt.Println("Creating a new Client")
 	config := loadEnv()
 	bot := TeamsClient{}
-	bot.Config = NewConfig(config)
+	bot.lruCache, _ = lru.New(50)
 	bot.Listeners = sync.WaitGroup{}
-	bot.client = http.Client{}
+	bot.client = newApiClient(NewConfig(config))
 	return bot
 }
 
 func (b *TeamsClient) RegisterNewListener(ep TeamsMessageProcessor) {
-	fmt.Println("Adding a new listener for " + ep.GetEvent() + " events ")
-	b.EventProcessors = append(b.EventProcessors, ep)
+	fmt.Println("Adding a new listener for " + ep.GetResource() + " events ")
+	b.EventProcessors[ep.GetResource()] = append(b.EventProcessors[ep.GetResource()], ep);
 }
 
 func (b *TeamsClient) Start() {
@@ -75,29 +65,15 @@ func (b *TeamsClient) Respond( text string, markdown string, files []string, oMs
 	newMsg.ToPersonEmail = oMsg.ToPersonEmail
 	newMsg.ToPersonID = oMsg.ToPersonID
 	newMsg.RoomID = oMsg.RoomID
-	b.sendMessage(newMsg)
+	b.client.sendMessage(newMsg)
 }
 
-func(b *TeamsClient) sendMessage(msg newMessage) {
-	body, err := json.Marshal(&msg)
-	Croak(err)
-	b.post(NEW_MESSAGE_URL, body)
+func (b *TeamsClient) GetUserDetails( userId string ) Person {
+	return b.client.getUserDetails(userId)
 }
 
-func(b *TeamsClient) post( url string, body []byte) {
-	req,err := http.NewRequest("POST", url, bytes.NewBuffer(body))
-	req.Header.Add("Authorization", "Bearer " + b.Config.AccessToken)
-	req.Header.Add( "Content-Type", "application/json")
-	res,err := b.client.Do(req)
-	Croak(err)
-	fmt.Println(res.Status)
-}
 
-func (b *TeamsClient) startServer() {
-	http.HandleFunc("/", b.webSocketListenerCallBack )
-	err := http.ListenAndServe(":8080", nil)
-	Croak(err)
-}
+// Private Functions
 
 func (b *TeamsClient) webSocketListenerCallBack( w http.ResponseWriter, r *http.Request) {
 	auth := r.Header.Get("X-Spark-Signature")
@@ -105,15 +81,8 @@ func (b *TeamsClient) webSocketListenerCallBack( w http.ResponseWriter, r *http.
 	body, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 
-	fmt.Println("The body of the message:")
-	fmt.Printf("%x\n", body)
-	fmt.Println("The supplied HMAC-SHA1 hash")
-	fmt.Println(auth)
-	fmt.Println("The the expected encryption")
-
-	if checkMAC( body, []byte(auth), []byte(b.Config.SparkSecret) ) {
+	if checkMAC( body, []byte(auth), []byte(b.client.config.sparkSecret) ) {
 		w.Write([]byte("200 - Authenticated"))
-
 
 		var envelope WebhookMessage
 		err = json.Unmarshal(body, &envelope)
@@ -125,15 +94,7 @@ func (b *TeamsClient) webSocketListenerCallBack( w http.ResponseWriter, r *http.
 
 		switch envelope.Resource {
 		case "messages":
-			proc,err := b.eventProcessorsWhere( "messages" )
-			Croak(err)
-			var message Message
-			json.Unmarshal(envelope.Data, &message)
-			// Skip messages from myself
-			if message.SenderEmail == b.Config.Username {
-				return
-			}
-		    proc.OnMessage(*b, message)
+			b.actOnMessage(envelope)
 		}
 	} else {
 		fmt.Println("WARNING - MESSAGE RECEIVED WITH INVALID AUTH HEADER: " + auth)
@@ -141,17 +102,28 @@ func (b *TeamsClient) webSocketListenerCallBack( w http.ResponseWriter, r *http.
 		w.Write([]byte("404 - Not Authenticated"))
 	}
 }
-
-
-// Private Functions
-
-func (b *TeamsClient) eventProcessorsWhere( resource string ) (TeamsMessageProcessor, error) {
-	for i := 0; i < len(b.EventProcessors); i++ {
-		if b.EventProcessors[i].GetResource() == resource {
-			return b.EventProcessors[i], nil
-		}
+/**
+ Private
+ Act on an incoming message by scanning for event processors
+ */
+func( b *TeamsClient) actOnMessage(  envelope WebhookMessage ) {
+	var message Message
+	json.Unmarshal(envelope.Data, &message)
+	// Skip messages from myself
+	if message.SenderEmail == b.client.config.username {
+		return
 	}
-	return nil, errors.New("No event processor found for " + resource)
+	decryptedMessage := b.client.getFullMessage( message.ID )
+	for i := 0; i < len(b.EventProcessors["messages"]); i++ {
+		proc := b.EventProcessors["message"][i]
+		proc.OnMessage(*b, decryptedMessage)
+	}
+}
+
+func (b *TeamsClient) startServer() {
+	http.HandleFunc("/", b.webSocketListenerCallBack )
+	err := http.ListenAndServe(":8080", nil)
+	Croak(err)
 }
 
 func checkMAC(unsignedData, receivedHMAC, key []byte) bool {

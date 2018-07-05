@@ -5,12 +5,21 @@ import (
 	"log"
 )
 
-type TeamsConfig struct {
-	SparkSecret string
-	AccessToken string
-	Username string
-	BotId string
-	TargetURL string
+type teamsConfig struct {
+	sparkSecret string
+	accessToken string
+	username string
+	botId string
+}
+
+
+func NewConfig(conf map[string]string ) teamsConfig {
+	config := teamsConfig{}
+	config.sparkSecret = conf["SparkSecret"]
+	config.accessToken = conf["AccessToken"]
+	config.username = conf["Username"]
+	config.botId = conf["BotId"]
+	return config
 }
 
 
